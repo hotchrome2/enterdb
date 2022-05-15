@@ -6,6 +6,9 @@ from tempfile import NamedTemporaryFile
 from fastapi import Depends, FastAPI, HTTPException, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
+from azure.storage.blob import BlobServiceClient, ContentSettings, BlobClient, ContainerClient, __version__
+
+
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
@@ -60,12 +63,22 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 async def create_file(uploadfile: UploadFile):
     tmp_path: Path = ""
     try:
+        connect_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+        container_name = "april27"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=uploadfile.filename)
+
         suffix = Path(uploadfile.filename).suffix
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             shutil.copyfileobj(uploadfile.file, tmp)
             tmp_path = Path(tmp.name)
-            shutil.copyfile(tmp_path, os.path.join("./files", uploadfile.filename))
+            size = os.stat(tmp_path).st_size
+            content_settings = ContentSettings(content_type=uploadfile.content_type)
+
+            with open(tmp_path, "rb") as data:
+                blob_client.upload_blob(data, content_settings=content_settings)
+
     finally:
         uploadfile.file.close()
 
-    return {"upload_filename": uploadfile.filename, "uploadfile_content_type": uploadfile.content_type}
+    return {"upload_filename": uploadfile.filename, "uploadfile_content_type": uploadfile.content_type, "size": size}
