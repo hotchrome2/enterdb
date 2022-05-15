@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# 2022-05-15 一時的フォルダ
+/files/

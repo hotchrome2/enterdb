@@ -6,8 +6,12 @@ name = "pypi"
 [packages]
 fastapi = {extras = ["all"], version = "*"}
 sqlalchemy = "*"
+azure-storage-blob = "*"
 
 [dev-packages]
+flake8 = "*"
+isort = "*"
+black = "*"
 
 [requires]
 python_version = "3.9"

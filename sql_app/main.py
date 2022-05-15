@@ -1,3 +1,8 @@
+import os
+import shutil
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
 from fastapi import Depends, FastAPI, HTTPException, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
@@ -53,5 +58,14 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @app.post("/upload/")
 async def create_file(uploadfile: UploadFile):
+    tmp_path: Path = ""
+    try:
+        suffix = Path(uploadfile.filename).suffix
+        with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            shutil.copyfileobj(uploadfile.file, tmp)
+            tmp_path = Path(tmp.name)
+            shutil.copyfile(tmp_path, os.path.join("./files", uploadfile.filename))
+    finally:
+        uploadfile.file.close()
 
     return {"upload_filename": uploadfile.filename, "uploadfile_content_type": uploadfile.content_type}
